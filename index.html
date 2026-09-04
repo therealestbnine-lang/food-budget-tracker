@@ -922,6 +922,11 @@ updateAccountStatus();
 if(!localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
   document.getElementById("installTip").style.display = "flex";
 }
+// Support the manifest's "Add Entry" home-screen shortcut (long-press the
+// app icon -> Add Entry jumps straight here instead of just opening the app).
+if(new URLSearchParams(window.location.search).get("action") === "add"){
+  openEntryModal();
+}
 </script>
 
 <!-- Loaded last, and never blocking: the whole app above already works
