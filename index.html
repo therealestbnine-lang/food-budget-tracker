@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#2C3E50">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Food Budget Tracker</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232C3E50'/%3E%3Ctext x='50' y='68' font-size='55' text-anchor='middle' fill='white' font-family='Arial'%3E%C2%A3%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --accent:#3E6FA5; --accent-dark:#2F5680; --accent-light:#EAF1FA;
+    --navy:#2C3E50; --border:#D5DAE1; --neutral-bg:#F0F1F3; --neutral-hover:#E2E4E8;
+    --danger:#C62828; --danger-light:#FBEAEA; --ok:#2E7D32; --warn:#F9A825;
+    --week-a-header:#3E6FA5; --week-a-row:#EAF1FA; --week-a-row2:#DCE9F7;
+    --week-b-header:#4C8C5B; --week-b-row:#EAF6EC; --week-b-row2:#D9EEDC;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:#fff;color:#1c1c1c;
+    font-family:Roboto,-apple-system,"Segoe UI",Arial,sans-serif;
+    -webkit-text-size-adjust:100%;}
+  body{padding-bottom:90px;}
+  h1,h2,h3,p{margin:0;}
+  button{font-family:inherit; border:none; background:none; cursor:pointer;}
+  input,select{font-family:inherit;}
+
+  /* ---- top app bar ---- */
+  .appbar{position:sticky; top:0; z-index:20; background:var(--navy); color:#fff;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 8px 14px 16px; box-shadow:0 2px 6px rgba(0,0,0,0.15);}
+  .appbar .title{font-size:19px; font-weight:700; letter-spacing:.2px;}
+  .appbar .menu-btn{color:#fff; font-size:22px; padding:8px 12px; line-height:1;}
+
+  /* ---- slide-down menu ---- */
+  .menu-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.35); z-index:30; display:none;}
+  .menu-overlay.open{display:block;}
+  .menu-sheet{position:absolute; top:0; right:0; width:230px; background:#fff;
+    box-shadow:-2px 0 12px rgba(0,0,0,0.2); min-height:100%;
+    padding-top:env(safe-area-inset-top,0);}
+  .menu-sheet .menu-header{background:var(--navy); color:#fff; padding:16px; font-weight:700; font-size:15px;}
+  .menu-item{display:block; width:100%; text-align:left; padding:14px 18px; font-size:15px;
+    color:#222; border-bottom:1px solid #eee;}
+  .menu-item:active{background:var(--neutral-hover);}
+  .menu-item.danger{color:var(--danger);}
+  .menu-section-label{padding:12px 18px 4px; font-size:11px; font-weight:700; color:#888; letter-spacing:.4px;}
+
+  /* ---- floating action button ---- */
+  .fab{position:fixed; right:20px; bottom:24px; z-index:15;
+    background:var(--accent); color:#fff; border-radius:30px;
+    padding:16px 22px; font-size:15px; font-weight:700;
+    box-shadow:0 4px 12px rgba(0,0,0,0.25); display:flex; align-items:center; gap:8px;}
+  .fab:active{background:var(--accent-dark);}
+
+  /* ---- month cards ---- */
+  .content{padding:12px;}
+  .empty-state{text-align:center; color:#888; padding:60px 20px; font-size:14px; line-height:1.6;}
+  .month-card{background:#fff; border:1px solid var(--border); border-radius:10px;
+    margin-bottom:16px; overflow:hidden;}
+  .month-header{background:var(--navy); color:#fff; padding:14px 16px;
+    display:flex; justify-content:space-between; align-items:center;}
+  .month-header .m-title{font-size:16px; font-weight:700;}
+  .month-header .m-arrow{font-size:13px; opacity:.9;}
+  .month-summary{padding:12px 16px; background:#fff;}
+  .month-summary .totals{font-size:13.5px; color:#222; line-height:1.6;}
+  .month-summary .totals .sep{color:#bbb; margin:0 6px;}
+  .progress-track{height:12px; border-radius:6px; background:var(--neutral-bg); margin-top:8px; overflow:hidden;}
+  .progress-fill{height:100%; border-radius:6px;}
+  .warning-text{color:var(--danger); font-weight:700; font-size:13px; margin-top:8px;}
+
+  .weeks-wrap{display:flex;}
+  .weeks-connector{width:5px; background:var(--navy); flex-shrink:0;}
+  .weeks-body{flex:1; min-width:0; padding-left:10px;}
+
+  .week-block{margin:10px 10px 10px 0;}
+  .week-header{padding:9px 12px; color:#fff; font-weight:700; font-size:13.5px;
+    display:flex; flex-wrap:wrap; justify-content:space-between; align-items:baseline;
+    border-radius:6px 6px 0 0; gap:4px 10px;}
+  .week-header .wk-total{white-space:nowrap;}
+  .week-header .wk-range{white-space:normal;}
+  .week-body{border-radius:0 0 6px 6px; overflow:hidden;}
+  .week-notset{padding:8px 12px 0; font-weight:700; font-size:12.5px; color:var(--danger);}
+
+  .entry-row{padding:10px 12px; border-bottom:1px solid rgba(0,0,0,0.06);}
+  .entry-row:last-child{border-bottom:none;}
+  .entry-line1{display:flex; justify-content:space-between; font-weight:600; font-size:14px;}
+  .entry-line2{display:flex; justify-content:space-between; font-size:12.5px; color:#555; margin-top:2px;}
+  .entry-code{font-size:11px; color:var(--accent); margin-top:3px; font-weight:600;}
+  .entry-actions{display:flex; gap:8px; margin-top:8px;}
+  .btn-tiny{padding:6px 12px; border-radius:5px; font-size:12.5px; font-weight:600;}
+  .btn-tiny.edit{background:var(--neutral-bg); color:#222;}
+  .btn-tiny.delete{background:var(--danger-light); color:var(--danger);}
+
+  /* ---- modals ---- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:40;
+    display:none; align-items:flex-end; justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal-sheet{background:#fff; width:100%; max-width:480px; border-radius:16px 16px 0 0;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom,0)); max-height:88vh; overflow-y:auto;
+    animation:slideup .18s ease-out;}
+  @keyframes slideup{from{transform:translateY(24px); opacity:.4;} to{transform:translateY(0); opacity:1;}}
+  .modal-title{font-size:18px; font-weight:700; margin-bottom:16px;}
+  .field-label{font-size:12.5px; font-weight:700; color:#333; margin:14px 0 6px;}
+  .field-label:first-of-type{margin-top:0;}
+  select,input[type=text],input[type=number],input[type=date]{
+    width:100%; padding:11px 12px; border:1px solid var(--border); border-radius:8px;
+    font-size:15px; background:#fff; color:#111;}
+  select:focus,input:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  .currency-toggle{display:flex; gap:8px; margin-top:8px;}
+  .currency-toggle button{flex:1; padding:10px; border:1.5px solid var(--border); border-radius:8px; font-weight:700;}
+  .currency-toggle button.active{border-color:var(--accent); background:var(--accent-light); color:var(--accent-dark);}
+  .range-options label{display:flex; align-items:center; gap:8px; padding:8px 0; font-size:14px;}
+  .modal-note{font-size:12px; color:#777; margin-top:10px; line-height:1.5;}
+  .modal-buttons{display:flex; gap:10px; margin-top:20px;}
+  .modal-buttons button{flex:1; padding:13px; border-radius:8px; font-weight:700; font-size:15px;}
+  .btn-cancel{background:var(--neutral-bg); color:#222;}
+  .btn-save{background:var(--accent); color:#fff;}
+  .btn-save:active{background:var(--accent-dark);}
+  .existing-note{font-size:12px; color:var(--accent-dark); margin-top:8px; min-height:32px; line-height:1.5;}
+
+  .toast{position:fixed; left:16px; right:16px; bottom:24px; z-index:60;
+    background:#222; color:#fff; padding:14px 16px; border-radius:10px; font-size:13.5px;
+    line-height:1.5; box-shadow:0 4px 14px rgba(0,0,0,0.3); display:none;}
+  .toast.show{display:block;}
+
+  .install-tip{margin:12px 12px 0; padding:12px 14px; background:var(--accent-light);
+    border:1px solid var(--accent); border-radius:8px; font-size:12.5px; color:var(--accent-dark);
+    display:flex; justify-content:space-between; gap:10px; align-items:center;}
+  .install-tip button{font-size:18px; color:var(--accent-dark); padding:0 4px;}
+</style>
+
+<!-- Google Sign-In + Firestore sync happen via the Firebase SDK, loaded
+     below (after the main app script). The core app never depends on
+     this loading successfully - if you're offline or the CDN is briefly
+     unreachable, local entries/budgets keep working exactly as normal,
+     sync just quietly stays unavailable until it can load. See
+     FIREBASE_SETUP.md -->
+</head>
+<body>
+
+<div class="appbar">
+  <div class="title">Food Budget Tracker</div>
+  <button class="menu-btn" onclick="openMenu()">&#9776;</button>
+</div>
+
+<div id="accountStatus" style="padding:6px 14px 0; font-size:11.5px; color:#777;"></div>
+<div id="installTip" class="install-tip" style="display:none;">
+  <span>Tip: use your browser's "Add to Home Screen" to install this as an app.</span>
+  <button onclick="dismissInstallTip()">&times;</button>
+</div>
+
+<div class="content" id="content"></div>
+
+<button class="fab" onclick="openEntryModal()">+ Add Entry</button>
+
+<!-- Slide-out menu -->
+<div class="menu-overlay" id="menuOverlay" onclick="closeMenuIfBackdrop(event)">
+  <div class="menu-sheet">
+    <div class="menu-header">Food Budget Tracker</div>
+    <div class="menu-section-label">File</div>
+    <button class="menu-item" onclick="closeMenu(); openExportModal();">Export...</button>
+    <button class="menu-item" onclick="closeMenu(); triggerImport();">Import...</button>
+    <div class="menu-section-label">Budget</div>
+    <button class="menu-item" onclick="closeMenu(); openBudgetModal();">Set Monthly Budget</button>
+    <div class="menu-section-label">Data</div>
+    <button class="menu-item" onclick="closeMenu(); showStorageInfo();">Where's my data stored?</button>
+    <div class="menu-section-label">Account</div>
+    <div id="accountMenuItems"></div>
+  </div>
+</div>
+<input type="file" id="importFileInput" accept="application/json,.json" style="display:none" onchange="handleImportFile(event)">
+
+<!-- Add/Edit entry modal -->
+<div class="modal-overlay" id="entryModalOverlay">
+  <div class="modal-sheet">
+    <div class="modal-title" id="entryModalTitle">Add Entry</div>
+    <div id="entryIdNote" class="existing-note" style="display:none;"></div>
+
+    <div class="field-label">Category</div>
+    <select id="entryCategory"></select>
+
+    <div class="field-label">Amount</div>
+    <input type="number" id="entryAmount" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+    <div class="currency-toggle">
+      <button type="button" id="curGBP" onclick="selectCurrency('GBP')">&#163; GBP</button>
+      <button type="button" id="curEUR" onclick="selectCurrency('EUR')">&#8364; EUR</button>
+    </div>
+
+    <div class="field-label">Shop / Place</div>
+    <input type="text" id="entryShop" placeholder="e.g. Tesco">
+
+    <div class="field-label">Date</div>
+    <input type="date" id="entryDate">
+
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeEntryModal()">Cancel</button>
+      <button class="btn-save" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Budget modal -->
+<div class="modal-overlay" id="budgetModalOverlay">
+  <div class="modal-sheet">
+    <div class="modal-title">Set Monthly Budget</div>
+
+    <div class="field-label">Month</div>
+    <select id="budgetMonth" onchange="loadExistingBudgetForSelectedMonth()"></select>
+
+    <div class="field-label">Budget amount</div>
+    <input type="number" id="budgetAmount" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+    <div class="currency-toggle">
+      <button type="button" id="budgetCurGBP" onclick="selectBudgetCurrency('GBP')">&#163; GBP</button>
+      <button type="button" id="budgetCurEUR" onclick="selectBudgetCurrency('EUR')">&#8364; EUR</button>
+    </div>
+    <div class="existing-note" id="budgetExistingNote"></div>
+
+    <div class="field-label">Apply to</div>
+    <div class="range-options">
+      <label><input type="radio" name="budgetRange" value="1" checked> Only this month</label>
+      <label><input type="radio" name="budgetRange" value="3"> This + next 2 months</label>
+      <label><input type="radio" name="budgetRange" value="7"> This + next 6 months</label>
+    </div>
+    <div class="modal-note">You can change this anytime - it's not fixed.</div>
+
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeBudgetModal()">Cancel</button>
+      <button class="btn-save" onclick="saveBudget()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Export modal -->
+<div class="modal-overlay" id="exportModalOverlay">
+  <div class="modal-sheet">
+    <div class="modal-title">Export Data</div>
+
+    <div class="field-label">Export entries from</div>
+    <select id="exportFrom"></select>
+    <div class="field-label">through</div>
+    <select id="exportTo"></select>
+    <div class="modal-note">Only months you've actually logged entries in are listed.</div>
+
+    <div class="modal-buttons">
+      <button class="btn-cancel" onclick="closeExportModal()">Cancel</button>
+      <button class="btn-save" onclick="doExport()">Export...</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================================================================
+   Food Budget Tracker - mobile web app
+   Data is stored on-device via localStorage (key below). Export/Import
+   let you move data between devices or keep a backup, since it never
+   leaves this browser on its own.
+====================================================================== */
+
+const STORAGE_KEY = "foodBudgetTrackerData";
+const CATEGORIES = ["Big Shopping","Small Shopping","Quick Snacking","University","Takeout/Delivery","Meal Prep Delivery"];
+const CURRENCIES = {GBP:"\u00a3", EUR:"\u20ac"};
+const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const DAY_ABBR = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+/* ---------------- Google Sign-In + Firestore sync ----------------------
+   Paste the firebaseConfig object from FIREBASE_SETUP.md (Step 4) below.
+   Whole-document sync, mirroring the desktop app: sign in -> pull the
+   remote doc -> merge it in via importDataPayload() (same duplicate/
+   collision-safe logic as File > Import) -> push the merged result back.
+------------------------------------------------------------------------- */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyD9gg0_yaN6uUZI__3GhR3PWn74VCQPD8I",
+  authDomain: "food-budget-tracker-d9edf.firebaseapp.com",
+  projectId: "food-budget-tracker-d9edf",
+  storageBucket: "food-budget-tracker-d9edf.firebasestorage.app",
+  messagingSenderId: "536782704880",
+  appId: "1:536782704880:web:93a1bbbd753b66177bb235",
+};
+const SYNC_CONFIGURED = !Object.values(FIREBASE_CONFIG).some(v => String(v).startsWith("PASTE_YOUR_"));
+
+let fbApp = null, fbAuth = null, fbDb = null, currentUser = null;
+
+function initFirebaseIfNeeded(){
+  if(!SYNC_CONFIGURED || fbApp) return;
+  if(typeof firebase === "undefined"){
+    // SDK hasn't loaded (offline, or the CDN was briefly unreachable) -
+    // the rest of the app keeps working fine without it.
+    updateAccountStatus("Sign-in unavailable right now (offline?)");
+    return;
+  }
+  fbApp = firebase.initializeApp(FIREBASE_CONFIG);
+  fbAuth = firebase.auth();
+  fbDb = firebase.firestore();
+  fbAuth.onAuthStateChanged(user => {
+    currentUser = user;
+    renderAccountMenu();
+    updateAccountStatus();
+    if(user) syncNow(true);
+  });
+}
+
+function updateAccountStatus(text){
+  const el = document.getElementById("accountStatus");
+  if(text !== undefined){ el.textContent = text; return; }
+  el.textContent = currentUser
+    ? `\u2713 Signed in as ${currentUser.email}`
+    : (SYNC_CONFIGURED ? "Not signed in - menu to sync across devices" : "");
+}
+
+function renderAccountMenu(){
+  const el = document.getElementById("accountMenuItems");
+  if(!SYNC_CONFIGURED){
+    el.innerHTML = `<button class="menu-item" onclick="closeMenu(); alert('Google Sign-In isn\\'t set up yet. Follow FIREBASE_SETUP.md and paste your config into FIREBASE_CONFIG near the top of the script.');">Sign in with Google...</button>`;
+    return;
+  }
+  if(currentUser){
+    el.innerHTML = `
+      <div class="menu-item" style="color:#888;">${currentUser.email}</div>
+      <button class="menu-item" onclick="closeMenu(); syncNow(false);">Sync Now</button>
+      <button class="menu-item danger" onclick="closeMenu(); signOutGoogle();">Sign Out</button>
+    `;
+  } else {
+    el.innerHTML = `<button class="menu-item" onclick="closeMenu(); signInWithGoogle();">Sign in with Google...</button>`;
+  }
+}
+
+function signInWithGoogle(){
+  initFirebaseIfNeeded();
+  if(typeof firebase === "undefined" || !fbAuth){
+    showToast("Sign-in isn't available right now - check your connection and try again.", 4000);
+    return;
+  }
+  const provider = new firebase.auth.GoogleAuthProvider();
+  fbAuth.signInWithPopup(provider).catch(err => {
+    showToast("Sign-in failed: " + err.message, 4000);
+  });
+}
+
+function signOutGoogle(){
+  fbAuth.signOut();
+}
+
+function syncNow(silent){
+  if(!currentUser){ showToast("Sign in with Google first."); return; }
+  updateAccountStatus("Syncing...");
+  const docRef = fbDb.collection("users").doc(currentUser.uid).collection("data").doc("store");
+  docRef.get().then(snap => {
+    const remote = snap.exists ? snap.data() : null;
+    let result = {added:0, skippedDup:0, skippedInvalid:0, budgetsAdded:0};
+    if(remote){
+      result = importDataPayload({entries: remote.entries || [], budgets: remote.budgets || {}});
+    }
+    const pushPayload = {
+      entries: DATA.entries,
+      budgets: DATA.budgets,
+      nextId: DATA.nextId,
+      weekCounters: DATA.weekCounters,
+      updatedAt: new Date().toISOString(),
+    };
+    return docRef.set(pushPayload).then(() => result);
+  }).then(result => {
+    updateAccountStatus();
+    renderAll();
+    if(silent && result.added === 0 && result.budgetsAdded === 0) return;
+    const lines = [];
+    lines.push(result.added ? `Merged in ${result.added} new ${result.added===1?"entry":"entries"} from your account.` : "No new data from other devices.");
+    if(result.budgetsAdded) lines.push(`Added ${result.budgetsAdded} budget(s).`);
+    showToast(lines.join(" "), 4000);
+  }).catch(err => {
+    updateAccountStatus();
+    if(!silent) showToast("Sync failed: " + err.message, 4000);
+  });
+}
+
+/* ---------------- date helpers (local time, no UTC drift) ------------- */
+function pad2(n){ return String(n).padStart(2,"0"); }
+function dstr(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`; }
+function parseDstr(s){ const [y,m,d] = s.split("-").map(Number); return new Date(y, m-1, d); }
+function todayLocal(){ const t = new Date(); return new Date(t.getFullYear(), t.getMonth(), t.getDate()); }
+function addDays(d, n){ const r = new Date(d); r.setDate(r.getDate()+n); return r; }
+function getWeekStart(d){ const r = new Date(d); r.setDate(r.getDate()-r.getDay()); return r; }
+function monthKey(d){ return `${d.getFullYear()}-${pad2(d.getMonth()+1)}`; }
+function monthLabel(key){ const [y,m] = key.split("-").map(Number); return `${MONTH_NAMES[m-1]} ${y}`; }
+function addMonthsYM(y, m, delta){ const idx = (m-1)+delta; const ny = y + Math.floor(idx/12); const nm = ((idx%12)+12)%12+1; return {y:ny, m:nm}; }
+function monthBounds(y, m){ const start = new Date(y, m-1, 1); const end = new Date(y, m, 0); return {start, end}; }
+function formatDateRange(start, end){
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  if(sameMonth) return `${pad2(start.getDate())} - ${pad2(end.getDate())} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
+  if(sameYear) return `${pad2(start.getDate())} ${MONTH_NAMES[start.getMonth()]} - ${pad2(end.getDate())} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
+  return `${pad2(start.getDate())} ${MONTH_NAMES[start.getMonth()]} ${start.getFullYear()} - ${pad2(end.getDate())} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
+}
+function generateEntryCode(weekStart, seq){
+  const weekEnd = addDays(weekStart, 6);
+  return `W${pad2(weekStart.getDate())}${pad2(weekEnd.getDate())}${pad2(weekStart.getMonth()+1)}${String(weekStart.getFullYear()).slice(-2)}-${seq}`;
+}
+
+/* ---------------- data store ------------------------------------------ */
+let DATA = null;
+
+function defaultData(){
+  return {entries:[], budgets:{}, nextId:1, weekCounters:{}};
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw){ DATA = defaultData(); return; }
+    const parsed = JSON.parse(raw);
+    DATA = Object.assign(defaultData(), parsed);
+  }catch(e){
+    DATA = defaultData();
+  }
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+}
+
+function addEntry(category, amount, currency, shop, entryDate){
+  const weekStart = getWeekStart(entryDate);
+  const weekKey = dstr(weekStart);
+  const seq = DATA.weekCounters[weekKey] || 1;
+  DATA.weekCounters[weekKey] = seq + 1;
+  const entry = {
+    id: DATA.nextId++,
+    code: generateEntryCode(weekStart, seq),
+    category, amount, currency, shop,
+    date: dstr(entryDate),
+  };
+  DATA.entries.push(entry);
+  saveData();
+  return entry;
+}
+
+function updateEntry(id, category, amount, currency, shop, entryDate){
+  const e = DATA.entries.find(e => e.id === id);
+  if(!e) return;
+  e.category = category; e.amount = amount; e.currency = currency;
+  e.shop = shop; e.date = dstr(entryDate);
+  saveData();
+}
+
+function deleteEntryById(id){
+  DATA.entries = DATA.entries.filter(e => e.id !== id);
+  saveData();
+}
+
+function getBudgetForMonth(mKey){ return DATA.budgets[mKey] || null; }
+
+function setBudgetForMonths(startKey, amount, currency, numMonths){
+  const [y,m] = startKey.split("-").map(Number);
+  for(let i=0;i<numMonths;i++){
+    const {y:yy, m:mm} = addMonthsYM(y, m, i);
+    DATA.budgets[`${yy}-${pad2(mm)}`] = {amount, currency};
+  }
+  saveData();
+}
+
+function availableMonths(){
+  const set = new Set(DATA.entries.map(e => monthKey(parseDstr(e.date))));
+  return Array.from(set).sort();
+}
+
+function exportRange(fromKey, toKey){
+  const entries = DATA.entries.filter(e => {
+    const k = monthKey(parseDstr(e.date));
+    return k >= fromKey && k <= toKey;
+  });
+  const monthsCovered = Array.from(new Set(entries.map(e => monthKey(parseDstr(e.date))))).sort();
+  const budgets = {};
+  monthsCovered.forEach(k => { if(DATA.budgets[k]) budgets[k] = DATA.budgets[k]; });
+  return {app:"FoodBudgetTracker", export_version:1, exported_range:{from:fromKey, to:toKey}, entries, budgets};
+}
+
+function importDataPayload(payload){
+  if(!payload || !Array.isArray(payload.entries)){
+    throw new Error("This file doesn't look like a compatible Food Budget Tracker export (missing an 'entries' list).");
+  }
+  const sigOf = e => [e.category, Math.round(Number(e.amount)*100)/100, e.currency, e.shop, e.date].join("|");
+  const existingCodes = new Set(DATA.entries.map(e => e.code));
+  const existingSigs = new Set(DATA.entries.map(sigOf));
+  const required = ["category","amount","currency","shop","date"];
+
+  let added=0, skippedDup=0, skippedInvalid=0;
+
+  for(const raw of payload.entries){
+    if(!raw || typeof raw !== "object" || required.some(k => !(k in raw))){ skippedInvalid++; continue; }
+    let entryDate;
+    try{
+      entryDate = parseDstr(raw.date);
+      if(isNaN(entryDate.getTime())) throw new Error();
+    }catch(e){ skippedInvalid++; continue; }
+    const amount = Math.round(Number(raw.amount)*100)/100;
+    if(!isFinite(amount) || !(raw.currency in CURRENCIES)){ skippedInvalid++; continue; }
+
+    const category = raw.category || "Big Shopping";
+    const shop = raw.shop || "(unspecified)";
+    const sig = [category, amount, raw.currency, shop, dstr(entryDate)].join("|");
+    if(existingSigs.has(sig)){ skippedDup++; continue; }
+
+    const weekStart = getWeekStart(entryDate);
+    const weekKey = dstr(weekStart);
+    let code = raw.code;
+    if(!code || existingCodes.has(code)){
+      const seq = DATA.weekCounters[weekKey] || 1;
+      code = generateEntryCode(weekStart, seq);
+      DATA.weekCounters[weekKey] = seq + 1;
+    } else {
+      const parts = code.split("-");
+      const importedSeq = parseInt(parts[parts.length-1], 10) || 1;
+      DATA.weekCounters[weekKey] = Math.max(DATA.weekCounters[weekKey] || 1, importedSeq + 1);
+    }
+
+    DATA.entries.push({id:DATA.nextId++, code, category, amount, currency:raw.currency, shop, date:dstr(entryDate)});
+    existingCodes.add(code); existingSigs.add(sig);
+    added++;
+  }
+
+  let budgetsAdded = 0;
+  Object.entries(payload.budgets || {}).forEach(([k,b]) => {
+    if(!(k in DATA.budgets) && b && typeof b.amount !== "undefined" && b.currency){
+      DATA.budgets[k] = {amount:b.amount, currency:b.currency};
+      budgetsAdded++;
+    }
+  });
+
+  if(added || budgetsAdded) saveData();
+  return {added, skippedDup, skippedInvalid, budgetsAdded};
+}
+
+/* ---------------- UI state --------------------------------------------- */
+let monthExpanded = {};
+let editingEntryId = null;
+let selectedCurrency = "GBP";
+let selectedDate = todayLocal();
+let budgetSelectedCurrency = "GBP";
+let budgetMonthKeys = [];
+
+/* ---------------- rendering -------------------------------------------- */
+function renderAll(){
+  const container = document.getElementById("content");
+  container.innerHTML = "";
+
+  const months = {};
+  DATA.entries.forEach(e => {
+    const k = monthKey(parseDstr(e.date));
+    (months[k] = months[k] || []).push(e);
+  });
+  const todayKey = monthKey(todayLocal());
+  if(!(todayKey in months)) months[todayKey] = [];
+
+  const sortedMonths = Object.keys(months).sort().reverse();
+
+  if(DATA.entries.length === 0){
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "No entries yet. Tap \"+ Add Entry\" to log your first purchase.";
+    container.appendChild(empty);
+  }
+
+  let weekColorIdx = 0;
+  sortedMonths.forEach(mKey => {
+    const card = buildMonthCard(mKey, months[mKey], weekColorIdx);
+    weekColorIdx = card.nextColorIdx;
+    container.appendChild(card.el);
+  });
+}
+
+function buildMonthCard(mKey, monthEntries, weekColorIdxStart){
+  const [y,m] = mKey.split("-").map(Number);
+  const {start:monthStart, end:monthEnd} = monthBounds(y,m);
+  if(!(mKey in monthExpanded)) monthExpanded[mKey] = (mKey === monthKey(todayLocal()));
+  const expanded = monthExpanded[mKey];
+
+  const card = document.createElement("div");
+  card.className = "month-card";
+
+  const header = document.createElement("div");
+  header.className = "month-header";
+  header.onclick = () => { monthExpanded[mKey] = !monthExpanded[mKey]; renderAll(); };
+  header.innerHTML = `<div class="m-title">${MONTH_NAMES[m-1]} ${y} (${pad2(monthStart.getDate())} - ${pad2(monthEnd.getDate())})</div><div class="m-arrow">${expanded ? "\u25B2" : "\u25BC"}</div>`;
+  card.appendChild(header);
+
+  const summary = document.createElement("div");
+  summary.className = "month-summary";
+
+  const totals = {};
+  monthEntries.forEach(e => { totals[e.currency] = (totals[e.currency]||0) + e.amount; });
+  const totalParts = Object.entries(totals).map(([cur,amt]) => `${CURRENCIES[cur]}${amt.toFixed(2)} ${cur}`);
+  const budget = getBudgetForMonth(mKey);
+  let warningText = "", barPct = 0, barColor = "var(--neutral-bg)";
+
+  if(budget && budget.amount > 0){
+    const spent = totals[budget.currency] || 0;
+    const pct = (spent / budget.amount) * 100;
+    totalParts.push(`Budget: ${CURRENCIES[budget.currency]}${budget.amount.toFixed(2)} ${budget.currency} - ${Math.round(pct)}% used`);
+    barPct = Math.min(pct, 100);
+    if(pct >= 100){ barColor = "var(--danger)"; warningText = "\u26a0 You are over budget for this month."; }
+    else if(pct >= 80){ barColor = "var(--warn)"; warningText = "\u26a0 Getting close to your monthly budget."; }
+    else { barColor = "var(--ok)"; }
+  } else {
+    warningText = `BUDGET NOT SET for ${MONTH_NAMES[m-1]} ${y}`;
+  }
+  if(totalParts.length === 0) totalParts.push(`No spending logged for ${MONTH_NAMES[m-1]} ${y}.`);
+
+  summary.innerHTML = `
+    <div class="totals">${totalParts.join('<span class="sep">|</span>')}</div>
+    <div class="progress-track"><div class="progress-fill" style="width:${barPct}%; background:${barColor};"></div></div>
+    ${warningText ? `<div class="warning-text">${warningText}</div>` : ""}
+  `;
+  card.appendChild(summary);
+
+  let nextColorIdx = weekColorIdxStart;
+  if(expanded){
+    const weeksWrap = document.createElement("div");
+    weeksWrap.className = "weeks-wrap";
+    const connector = document.createElement("div");
+    connector.className = "weeks-connector";
+    const weeksBody = document.createElement("div");
+    weeksBody.className = "weeks-body";
+
+    const weeks = {};
+    monthEntries.forEach(e => {
+      const wk = dstr(getWeekStart(parseDstr(e.date)));
+      (weeks[wk] = weeks[wk] || []).push(e);
+    });
+    const sortedWeeks = Object.keys(weeks).sort().reverse();
+
+    sortedWeeks.forEach(wkKey => {
+      const weekStart = parseDstr(wkKey);
+      const weekEntries = weeks[wkKey].slice().sort((a,b) => (a.date+"|"+a.id < b.date+"|"+b.id ? 1 : -1));
+      const rangeStart = weekStart > monthStart ? weekStart : monthStart;
+      const weekEnd = addDays(weekStart, 6);
+      const rangeEnd = weekEnd < monthEnd ? weekEnd : monthEnd;
+      const palette = (nextColorIdx % 2 === 0)
+        ? {header:"var(--week-a-header)", row:"var(--week-a-row)", row2:"var(--week-a-row2)"}
+        : {header:"var(--week-b-header)", row:"var(--week-b-row)", row2:"var(--week-b-row2)"};
+      nextColorIdx++;
+      weeksBody.appendChild(buildWeekBlock(rangeStart, rangeEnd, weekEntries, palette, mKey));
+    });
+
+    weeksWrap.appendChild(connector);
+    weeksWrap.appendChild(weeksBody);
+    card.appendChild(weeksWrap);
+  }
+
+  return {el:card, nextColorIdx};
+}
+
+function buildWeekBlock(rangeStart, rangeEnd, weekEntries, palette, mKey){
+  const block = document.createElement("div");
+  block.className = "week-block";
+
+  const totals = {};
+  weekEntries.forEach(e => { totals[e.currency] = (totals[e.currency]||0) + e.amount; });
+  const totalKeys = Object.keys(totals);
+  const totalText = totalKeys.length <= 1
+    ? `Total: ${CURRENCIES[totalKeys[0]||"GBP"]}${(totals[totalKeys[0]]||0).toFixed(2)}`
+    : "Total: " + totalKeys.map(c => `${CURRENCIES[c]}${totals[c].toFixed(2)}`).join(" + ");
+
+  const header = document.createElement("div");
+  header.className = "week-header";
+  header.style.background = palette.header;
+  header.innerHTML = `<div class="wk-range">Week of ${formatDateRange(rangeStart, rangeEnd)}</div><div class="wk-total">${totalText}</div>`;
+  block.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "week-body";
+  body.style.background = palette.row;
+
+  if(!getBudgetForMonth(mKey)){
+    const warn = document.createElement("div");
+    warn.className = "week-notset";
+    warn.textContent = `BUDGET NOT SET: ${monthLabel(mKey)}`;
+    body.appendChild(warn);
+  }
+
+  weekEntries.forEach((e,i) => {
+    const row = document.createElement("div");
+    row.className = "entry-row";
+    row.style.background = i % 2 === 0 ? palette.row : palette.row2;
+    const d = parseDstr(e.date);
+    const dateLabel = `${DAY_ABBR[d.getDay()]} ${pad2(d.getDate())} ${MONTH_NAMES[d.getMonth()].slice(0,3)} ${d.getFullYear()}`;
+    row.innerHTML = `
+      <div class="entry-line1"><span>${escapeHtml(e.category)}</span><span>${CURRENCIES[e.currency]}${e.amount.toFixed(2)}</span></div>
+      <div class="entry-line2"><span>${escapeHtml(e.shop)}</span><span>${dateLabel}</span></div>
+      <div class="entry-code">${e.code}</div>
+      <div class="entry-actions">
+        <button class="btn-tiny edit" onclick="openEntryModal(${e.id})">Edit</button>
+        <button class="btn-tiny delete" onclick="confirmDelete(${e.id})">Delete</button>
+      </div>
+    `;
+    body.appendChild(row);
+  });
+
+  block.appendChild(body);
+  return block;
+}
+
+function escapeHtml(s){
+  const d = document.createElement("div");
+  d.textContent = s == null ? "" : String(s);
+  return d.innerHTML;
+}
+
+/* ---------------- entry modal ------------------------------------------ */
+function openEntryModal(id){
+  editingEntryId = id || null;
+  const catSelect = document.getElementById("entryCategory");
+  catSelect.innerHTML = CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join("");
+
+  const idNote = document.getElementById("entryIdNote");
+  if(editingEntryId){
+    const e = DATA.entries.find(e => e.id === editingEntryId);
+    document.getElementById("entryModalTitle").textContent = "Edit Entry";
+    idNote.style.display = "block";
+    idNote.textContent = `ID: ${e.code} (fixed, doesn't change)`;
+    catSelect.value = e.category;
+    document.getElementById("entryAmount").value = e.amount;
+    document.getElementById("entryShop").value = e.shop;
+    selectedDate = parseDstr(e.date);
+    selectCurrency(e.currency);
+  } else {
+    document.getElementById("entryModalTitle").textContent = "Add Entry";
+    idNote.style.display = "none";
+    document.getElementById("entryAmount").value = "";
+    document.getElementById("entryShop").value = "";
+    selectedDate = todayLocal();
+    selectCurrency("GBP");
+  }
+  document.getElementById("entryDate").value = dstr(selectedDate);
+  document.getElementById("entryDate").max = dstr(todayLocal());
+  document.getElementById("entryModalOverlay").classList.add("open");
+}
+function closeEntryModal(){ document.getElementById("entryModalOverlay").classList.remove("open"); }
+function selectCurrency(cur){
+  selectedCurrency = cur;
+  document.getElementById("curGBP").classList.toggle("active", cur === "GBP");
+  document.getElementById("curEUR").classList.toggle("active", cur === "EUR");
+}
+function saveEntry(){
+  const category = document.getElementById("entryCategory").value;
+  const amountRaw = document.getElementById("entryAmount").value;
+  const amount = Math.round(parseFloat(amountRaw)*100)/100;
+  const shop = document.getElementById("entryShop").value.trim() || "(unspecified)";
+  const dateVal = document.getElementById("entryDate").value;
+
+  if(!amountRaw || isNaN(amount) || amount <= 0){
+    showToast("Please enter a positive number for the amount."); return;
+  }
+  if(!dateVal){ showToast("Please pick a date."); return; }
+  const entryDate = parseDstr(dateVal);
+  if(dstr(entryDate) > dstr(todayLocal())){
+    showToast("You can't log an entry with a date in the future."); return;
+  }
+
+  if(editingEntryId){
+    updateEntry(editingEntryId, category, amount, selectedCurrency, shop, entryDate);
+  } else {
+    addEntry(category, amount, selectedCurrency, shop, entryDate);
+  }
+  closeEntryModal();
+  renderAll();
+
+  const mKey = monthKey(entryDate);
+  if(!getBudgetForMonth(mKey)){
+    showToast(`No budget is set for ${monthLabel(mKey)}. The entry was still added - set a budget anytime from the menu.`, 4200);
+  }
+}
+function confirmDelete(id){
+  const e = DATA.entries.find(e => e.id === id);
+  if(!e) return;
+  if(confirm(`Delete the entry for '${e.shop}'?`)){
+    deleteEntryById(id);
+    renderAll();
+  }
+}
+
+/* ---------------- budget modal ----------------------------------------- */
+function openBudgetModal(initialKey){
+  const today = todayLocal();
+  budgetMonthKeys = [];
+  for(let i=-12;i<=36;i++){
+    const {y,m} = addMonthsYM(today.getFullYear(), today.getMonth()+1, i);
+    budgetMonthKeys.push(`${y}-${pad2(m)}`);
+  }
+  const sel = document.getElementById("budgetMonth");
+  sel.innerHTML = budgetMonthKeys.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join("");
+  sel.value = initialKey || monthKey(today);
+  loadExistingBudgetForSelectedMonth();
+  document.querySelector('input[name="budgetRange"][value="1"]').checked = true;
+  document.getElementById("budgetModalOverlay").classList.add("open");
+}
+function closeBudgetModal(){ document.getElementById("budgetModalOverlay").classList.remove("open"); }
+function selectBudgetCurrency(cur){
+  budgetSelectedCurrency = cur;
+  document.getElementById("budgetCurGBP").classList.toggle("active", cur === "GBP");
+  document.getElementById("budgetCurEUR").classList.toggle("active", cur === "EUR");
+}
+function loadExistingBudgetForSelectedMonth(){
+  const key = document.getElementById("budgetMonth").value;
+  const existing = getBudgetForMonth(key);
+  const note = document.getElementById("budgetExistingNote");
+  if(existing){
+    document.getElementById("budgetAmount").value = existing.amount;
+    selectBudgetCurrency(existing.currency);
+    note.textContent = `A budget is already set for ${monthLabel(key)} - editing it below.`;
+  } else {
+    document.getElementById("budgetAmount").value = "";
+    selectBudgetCurrency("GBP");
+    note.textContent = `No budget set yet for ${monthLabel(key)}.`;
+  }
+}
+function saveBudget(){
+  const key = document.getElementById("budgetMonth").value;
+  const amountRaw = document.getElementById("budgetAmount").value;
+  const amount = amountRaw ? Math.round(parseFloat(amountRaw)*100)/100 : 0;
+  if(amountRaw && (isNaN(amount) || amount < 0)){
+    showToast("Please enter a non-negative number."); return;
+  }
+  const numMonths = parseInt(document.querySelector('input[name="budgetRange"]:checked').value, 10);
+  setBudgetForMonths(key, amount, budgetSelectedCurrency, numMonths);
+  closeBudgetModal();
+  renderAll();
+}
+
+/* ---------------- export / import -------------------------------------- */
+function openExportModal(){
+  const months = availableMonths();
+  if(months.length === 0){ showToast("You don't have any entries logged yet."); return; }
+  const fromSel = document.getElementById("exportFrom");
+  const toSel = document.getElementById("exportTo");
+  fromSel.innerHTML = months.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join("");
+  toSel.innerHTML = months.map(k => `<option value="${k}">${monthLabel(k)}</option>`).join("");
+  fromSel.value = months[0];
+  toSel.value = months[months.length-1];
+  document.getElementById("exportModalOverlay").classList.add("open");
+}
+function closeExportModal(){ document.getElementById("exportModalOverlay").classList.remove("open"); }
+function doExport(){
+  let fromKey = document.getElementById("exportFrom").value;
+  let toKey = document.getElementById("exportTo").value;
+  if(fromKey > toKey){ [fromKey, toKey] = [toKey, fromKey]; }
+  const payload = exportRange(fromKey, toKey);
+  if(payload.entries.length === 0){ showToast("There are no entries in that month range."); return; }
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `food_budget_${fromKey}_to_${toKey}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+
+  closeExportModal();
+  showToast(`Exported ${payload.entries.length} entries (${monthLabel(fromKey)} - ${monthLabel(toKey)}) to your Downloads.`, 4000);
+}
+function triggerImport(){ document.getElementById("importFileInput").click(); }
+function handleImportFile(event){
+  const file = event.target.files[0];
+  event.target.value = "";
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    let payload;
+    try{ payload = JSON.parse(reader.result); }
+    catch(e){ showToast("Couldn't read that file - it's not valid JSON."); return; }
+    try{
+      const r = importDataPayload(payload);
+      renderAll();
+      const lines = [`Imported ${r.added} ${r.added===1?"entry":"entries"}.`];
+      if(r.budgetsAdded) lines.push(`Added ${r.budgetsAdded} month budget(s) that weren't already set.`);
+      if(r.skippedDup) lines.push(`Skipped ${r.skippedDup} duplicate(s).`);
+      if(r.skippedInvalid) lines.push(`Skipped ${r.skippedInvalid} invalid entr${r.skippedInvalid===1?"y":"ies"}.`);
+      showToast(lines.join(" "), 4500);
+    }catch(e){ showToast(e.message); }
+  };
+  reader.readAsText(file);
+}
+
+/* ---------------- menu / toast / misc ----------------------------------- */
+function openMenu(){ document.getElementById("menuOverlay").classList.add("open"); }
+function closeMenu(){ document.getElementById("menuOverlay").classList.remove("open"); }
+function closeMenuIfBackdrop(ev){ if(ev.target.id === "menuOverlay") closeMenu(); }
+function showToast(msg, duration){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove("show"), duration || 3000);
+}
+function showStorageInfo(){
+  alert(
+    "Your entries and budgets are stored only in this browser, on this device (not in the cloud, not sent anywhere).\n\n" +
+    "If you clear this browser's site data, or switch devices/browsers, this data won't be there.\n\n" +
+    "Use File > Export regularly to save a backup you can keep or move to another device with File > Import."
+  );
+}
+function dismissInstallTip(){
+  document.getElementById("installTip").style.display = "none";
+  localStorage.setItem("fbt_install_tip_dismissed", "1");
+}
+
+/* ---------------- boot --------------------------------------------------- */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+loadData();
+renderAll();
+renderAccountMenu();
+updateAccountStatus();
+if(!localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
+  document.getElementById("installTip").style.display = "flex";
+}
+</script>
+
+<!-- Loaded last, and never blocking: the whole app above already works
+     with or without these. onerror is a deliberate no-op - a failed
+     fetch here just means sync stays unavailable until it can load. -->
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-app-compat.js" onerror="console.warn('Firebase SDK failed to load - sync unavailable right now.')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-auth-compat.js" onerror="console.warn('Firebase Auth SDK failed to load.')"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore-compat.js" onerror="console.warn('Firebase Firestore SDK failed to load.')"></script>
+<script>
+  window.addEventListener("load", () => { try { initFirebaseIfNeeded(); } catch(e) {} });
+</script>
+</body>
+</html>
