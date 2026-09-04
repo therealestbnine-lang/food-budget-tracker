@@ -1,13 +1,15 @@
 // Minimal service worker: caches the app shell so it also opens offline
 // once installed. Bump CACHE_NAME if you ever change index.html and want
 // installed copies to pick up the update.
-const CACHE_NAME = "food-budget-tracker-v1";
+const CACHE_NAME = "food-budget-tracker-v2";
 const SHELL_FILES = [
   "./",
   "./index.html",
   "./manifest.json",
   "./icons/icon-192.png",
   "./icons/icon-512.png",
+  "./screenshots/screenshot-narrow-1.png",
+  "./screenshots/screenshot-narrow-2.png",
 ];
 
 self.addEventListener("install", (event) => {
