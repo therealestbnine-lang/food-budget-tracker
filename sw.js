@@ -1,7 +1,7 @@
 // Minimal service worker: caches the app shell so it also opens offline
 // once installed. Bump CACHE_NAME if you ever change index.html and want
 // installed copies to pick up the update.
-const CACHE_NAME = "food-budget-tracker-v4";
+const CACHE_NAME = "food-budget-tracker-v5";
 const SHELL_FILES = [
   "./",
   "./index.html",

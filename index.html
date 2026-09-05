@@ -312,11 +312,12 @@ function initFirebaseIfNeeded(){
 }
 
 function updateAccountStatus(text){
+  // The "Sign in"/"+ Add Entry" buttons already communicate signed-in
+  // state by appearing/disappearing, so no persistent "Signed in as..."
+  // label is shown here by default. This still supports brief, explicit
+  // in-progress messages (e.g. "Syncing...") passed in by callers below.
   const el = document.getElementById("accountStatus");
-  if(text !== undefined){ el.textContent = text; return; }
-  el.textContent = currentUser
-    ? `\u2713 Signed in as ${currentUser.email}`
-    : (SYNC_CONFIGURED ? "Not signed in - menu to sync across devices" : "");
+  el.textContent = text || "";
 }
 
 function renderAccountMenu(){
