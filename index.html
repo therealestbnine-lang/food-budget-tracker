@@ -55,6 +55,12 @@
     box-shadow:0 4px 12px rgba(0,0,0,0.25); display:flex; align-items:center; gap:8px;}
   .fab:active{background:var(--accent-dark);}
 
+  .fab-signin{position:fixed; left:20px; bottom:24px; z-index:15;
+    background:#fff; color:var(--accent); border:1.5px solid var(--accent); border-radius:30px;
+    padding:16px 20px; font-size:15px; font-weight:700;
+    box-shadow:0 4px 12px rgba(0,0,0,0.2); display:none; align-items:center; gap:8px;}
+  .fab-signin:active{background:var(--accent-light);}
+
   /* ---- month cards ---- */
   .content{padding:12px;}
   .empty-state{text-align:center; color:#888; padding:60px 20px; font-size:14px; line-height:1.6;}
@@ -155,6 +161,7 @@
 <div class="content" id="content"></div>
 
 <button class="fab" onclick="openEntryModal()">+ Add Entry</button>
+<button class="fab-signin" id="fabSignIn" onclick="handleSignInButtonClick()">Sign in</button>
 
 <!-- Slide-out menu -->
 <div class="menu-overlay" id="menuOverlay" onclick="closeMenuIfBackdrop(event)">
@@ -274,12 +281,12 @@ const DAY_ABBR = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
    collision-safe logic as File > Import) -> push the merged result back.
 ------------------------------------------------------------------------- */
 const FIREBASE_CONFIG = {
-  apiKey: "AIzaSyD9gg0_yaN6uUZI__3GhR3PWn74VCQPD8I",
-  authDomain: "food-budget-tracker-d9edf.firebaseapp.com",
-  projectId: "food-budget-tracker-d9edf",
-  storageBucket: "food-budget-tracker-d9edf.firebasestorage.app",
-  messagingSenderId: "536782704880",
-  appId: "1:536782704880:web:93a1bbbd753b66177bb235",
+  apiKey: "PASTE_YOUR_API_KEY_HERE",
+  authDomain: "PASTE_YOUR_AUTH_DOMAIN_HERE",
+  projectId: "PASTE_YOUR_PROJECT_ID_HERE",
+  storageBucket: "PASTE_YOUR_STORAGE_BUCKET_HERE",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID_HERE",
+  appId: "PASTE_YOUR_APP_ID_HERE",
 };
 const SYNC_CONFIGURED = !Object.values(FIREBASE_CONFIG).some(v => String(v).startsWith("PASTE_YOUR_"));
 
@@ -316,9 +323,7 @@ function renderAccountMenu(){
   const el = document.getElementById("accountMenuItems");
   if(!SYNC_CONFIGURED){
     el.innerHTML = `<button class="menu-item" onclick="closeMenu(); alert('Google Sign-In isn\\'t set up yet. Follow FIREBASE_SETUP.md and paste your config into FIREBASE_CONFIG near the top of the script.');">Sign in with Google...</button>`;
-    return;
-  }
-  if(currentUser){
+  } else if(currentUser){
     el.innerHTML = `
       <div class="menu-item" style="color:#888;">${currentUser.email}</div>
       <button class="menu-item" onclick="closeMenu(); syncNow(false);">Sync Now</button>
@@ -327,6 +332,19 @@ function renderAccountMenu(){
   } else {
     el.innerHTML = `<button class="menu-item" onclick="closeMenu(); signInWithGoogle();">Sign in with Google...</button>`;
   }
+
+  // Same "Sign in" entry point also lives as a floating button opposite
+  // "+ Add Entry" - hide it the moment we're actually signed in.
+  const fabBtn = document.getElementById("fabSignIn");
+  if(fabBtn) fabBtn.style.display = currentUser ? "none" : "flex";
+}
+
+function handleSignInButtonClick(){
+  if(!SYNC_CONFIGURED){
+    alert("Google Sign-In isn't set up yet. Follow FIREBASE_SETUP.md and paste your config into FIREBASE_CONFIG near the top of the script.");
+    return;
+  }
+  signInWithGoogle();
 }
 
 function signInWithGoogle(){
@@ -919,8 +937,7 @@ loadData();
 renderAll();
 renderAccountMenu();
 updateAccountStatus();
-const isNativeApp = new URLSearchParams(window.location.search).get("native") === "1";
-if(!isNativeApp && !localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
+if(!localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
   document.getElementById("installTip").style.display = "flex";
 }
 // Support the manifest's "Add Entry" home-screen shortcut (long-press the
