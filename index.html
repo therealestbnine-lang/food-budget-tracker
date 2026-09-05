@@ -919,7 +919,8 @@ loadData();
 renderAll();
 renderAccountMenu();
 updateAccountStatus();
-if(!localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
+const isNativeApp = new URLSearchParams(window.location.search).get("native") === "1";
+if(!isNativeApp && !localStorage.getItem("fbt_install_tip_dismissed") && !(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)){
   document.getElementById("installTip").style.display = "flex";
 }
 // Support the manifest's "Add Entry" home-screen shortcut (long-press the
